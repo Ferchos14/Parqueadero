@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ParkSystem — Parqueadero</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0f11;
+    --surface: #16181c;
+    --surface2: #1e2128;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --accent: #e8f04a;
+    --accent-dim: rgba(232,240,74,0.12);
+    --accent-dim2: rgba(232,240,74,0.06);
+    --text: #f0f0ee;
+    --text2: #8a8d94;
+    --text3: #50535a;
+    --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.1);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.1);
+    --blue: #60a5fa;
+    --blue-dim: rgba(96,165,250,0.1);
+    --radius: 10px;
+    --radius-lg: 16px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  @media (max-width: 480px) {
+    header { padding: 14px 16px; }
+    #reloj { font-size: 11px; padding: 5px 10px; }
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 14px; font-weight: 700;
+    color: #0e0f11;
+  }
+  .logo-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 15px; font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--text);
+  }
+  .logo-name span { color: var(--accent); }
+  #reloj {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--text2);
+    background: var(--surface2);
+    padding: 6px 14px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+  }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-item {
+    background: var(--surface);
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  @media (max-width: 600px) {
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .stat-item { padding: 12px 16px; }
+    .stat-item .value { font-size: 18px; }
+  }
+  .stat-item .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text3);
+    font-weight: 500;
+  }
+  .stat-item .value {
+    font-family: 'Space Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .stat-item .value.accent { color: var(--accent); }
+  .stat-item .value.green { color: var(--green); }
+
+  /* LAYOUT */
+  .main-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    flex: 1;
+    min-height: 0;
+  }
+  @media (max-width: 768px) {
+    .main-layout { grid-template-columns: 1fr; }
+  }
+
+  /* SIDEBAR */
+  aside {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .sidebar-toggle {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    cursor: pointer;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    user-select: none;
+  }
+  .sidebar-toggle .toggle-icon { font-size: 18px; transition: transform 0.2s; }
+  .sidebar-toggle.open .toggle-icon { transform: rotate(180deg); }
+  @media (max-width: 768px) {
+    aside { border-right: none; border-bottom: 1px solid var(--border); overflow-y: visible; }
+    .sidebar-toggle { display: flex; }
+    .sidebar-collapsible { display: none; }
+    .sidebar-collapsible.open { display: flex; flex-direction: column; }
+  }
+  @media (min-width: 769px) {
+    .sidebar-collapsible { display: flex !important; flex-direction: column; flex: 1; }
+  }
+  .sidebar-section {
+    padding: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text3);
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  /* FORM */
+  label.field-label {
+    display: block;
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  input[type=text], input[type=number], select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 12px;
+  }
+  input[type=text]:focus, input[type=number]:focus, select:focus {
+    border-color: var(--accent);
+  }
+  input.placa {
+    font-family: 'Space Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-align: center;
+    padding: 14px;
+    color: var(--accent);
+  }
+  select option { background: var(--surface2); }
+
+  .btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-accent {
+    background: var(--accent);
+    color: #0e0f11;
+  }
+  .btn-accent:hover { background: #f0f860; }
+  .btn-ghost {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border2);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-red {
+    background: var(--red-dim);
+    color: var(--red);
+    border: 1px solid rgba(248,113,113,0.2);
+  }
+  .btn-red:hover { background: rgba(248,113,113,0.2); }
+
+  /* TIPO SELECTOR */
+  .tipo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .tipo-btn {
+    padding: 10px 6px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border2);
+    background: var(--surface2);
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .tipo-btn .icon { font-size: 20px; display: block; margin-bottom: 4px; }
+  .tipo-btn.active {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+
+  /* NAV TABS */
+  .nav-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 16px 24px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-tab {
+    padding: 10px 18px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    border: 1px solid transparent;
+    border-bottom: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+    position: relative;
+    bottom: -1px;
+  }
+  .nav-tab.active {
+    color: var(--accent);
+    border-color: var(--border);
+    background: var(--bg);
+  }
+  .nav-tab:not(.active):hover { color: var(--text); }
+
+  /* CONTENT */
+  .content-area {
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .tab-content { display: none; flex: 1; overflow-y: auto; padding: 24px; }
+  .tab-content.active { display: block; }
+
+  /* VEHICLE TABLE */
+  .vehicles-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .vehicles-table th {
+    text-align: left;
+    padding: 10px 16px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text3);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+  .vehicles-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .vehicles-table tr:last-child td { border-bottom: none; }
+  .vehicles-table tr:hover td { background: var(--surface); }
+
+  .placa-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-dim2);
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(232,240,74,0.15);
+  }
+  .tipo-pill {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .tipo-pill.carro { background: var(--blue-dim); color: var(--blue); }
+  .tipo-pill.moto { background: var(--green-dim); color: var(--green); }
+  .tipo-pill.bici { background: rgba(251,146,60,0.1); color: #fb923c; }
+  .tipo-pill.camion { background: rgba(167,139,250,0.1); color: #a78bfa; }
+
+  .timer-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--text2);
+  }
+  .cobro-preview {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--green);
+  }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text3);
+  }
+  .empty-state .big-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  /* TABLE WRAPPER */
+  .table-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .table-header h3 { font-size: 14px; font-weight: 600; }
+  .count-badge {
+    font-size: 11px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 2px 10px;
+    border-radius: 99px;
+    font-weight: 600;
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-lg);
+    width: 400px;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-header h2 { font-size: 16px; font-weight: 600; }
+  .modal-close {
+    background: none; border: none; cursor: pointer;
+    color: var(--text2); font-size: 20px; line-height: 1;
+  }
+  .modal-body { padding: 24px; }
+  .receipt {
+    background: var(--surface2);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .receipt-placa {
+    font-family: 'Space Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+    text-align: center;
+    letter-spacing: 4px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px dashed var(--border2);
+  }
+  .receipt-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 5px 0;
+    color: var(--text2);
+  }
+  .receipt-row .val { color: var(--text); font-weight: 500; }
+  .receipt-total {
+    display: flex;
+    justify-content: space-between;
+    font-size: 18px;
+    font-weight: 700;
+    padding-top: 14px;
+    margin-top: 10px;
+    border-top: 1px solid var(--border2);
+    font-family: 'Space Mono', monospace;
+  }
+  .receipt-total .total-val { color: var(--green); }
+
+  .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+  }
+  .modal-footer .btn { flex: 1; }
+
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  @media (max-width: 600px) {
+    .tab-content { padding: 16px; }
+    .hist-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .hist-row > div:last-child { text-align: left; }
+  }
+
+  /* HISTORIAL */
+  .hist-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  .hist-row:hover { background: var(--surface2); }
+  .hist-row:last-child { border-bottom: none; }
+
+  /* CONFIG */
+  .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .config-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+  }
+  .config-card h3 { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; }
+  .config-field { margin-bottom: 14px; }
+  .config-field label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 6px; }
+  .config-field input { margin-bottom: 0; }
+
+  /* SEARCH */
+  .search-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .search-bar input { margin-bottom: 0; flex: 1; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+
+  /* Animación entrada */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .anim { animation: fadeIn 0.2s ease; }
+
+  .success-toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--green-dim);
+    color: var(--green);
+    border: 1px solid rgba(74,222,128,0.25);
+    border-radius: var(--radius);
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 2000;
+    display: none;
+    animation: fadeIn 0.2s ease;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">P</div>
+    <div class="logo-name">Park<span>System</span></div>
+  </div>
+  <div id="reloj">00:00:00</div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat-item">
+    <span class="label">Vehículos dentro</span>
+    <span class="value accent" id="stat-dentro">0</span>
+  </div>
+  <div class="stat-item">
+    <span class="label">Recaudo hoy</span>
+    <span class="value green" id="stat-recaudo">$0</span>
+  </div>
+  <div class="stat-item">
+    <span class="label">Total atendidos</span>
+    <span class="value" id="stat-total">0</span>
+  </div>
+  <div class="stat-item">
+    <span class="label">Fecha</span>
+    <span class="value" id="stat-fecha" style="font-size:14px; padding-top:4px;">—</span>
+  </div>
+</div>
+
+<div class="main-layout">
+  <!-- SIDEBAR -->
+  <aside>
+    <div class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">
+      <span>&#9881; Registro y tarifas</span>
+      <span class="toggle-icon">&#9660;</span>
+    </div>
+    <div class="sidebar-collapsible" id="sidebar-collapsible">
+    <div class="sidebar-section">
+      <div class="section-title">Registrar entrada</div>
+      <label class="field-label">Placa del vehículo</label>
+      <input type="text" class="placa" id="placa-input" placeholder="ABC-123" maxlength="8" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')registrarEntrada()">
+      <label class="field-label">Tipo de vehículo</label>
+      <div class="tipo-grid">
+        <button class="tipo-btn active" data-tipo="carro" onclick="selectTipo(this)">
+          <span class="icon">🚗</span>Carro
+        </button>
+        <button class="tipo-btn" data-tipo="moto" onclick="selectTipo(this)">
+          <span class="icon">🏍️</span>Moto
+        </button>
+        <button class="tipo-btn" data-tipo="bici" onclick="selectTipo(this)">
+          <span class="icon">🚲</span>Bici
+        </button>
+        <button class="tipo-btn" data-tipo="camion" onclick="selectTipo(this)" style="grid-column: span 3;">
+          <span class="icon">🚛</span>Camión / Vehículo grande
+        </button>
+      </div>
+      <button class="btn btn-accent" onclick="registrarEntrada()">
+        ＋ Registrar entrada
+      </button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-title">Registrar salida</div>
+      <label class="field-label">Placa del vehículo</label>
+      <input type="text" class="placa" id="placa-salida" placeholder="ABC-123" maxlength="8" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')buscarParaSalida()">
+      <button class="btn btn-ghost" onclick="buscarParaSalida()">
+        🔍 Buscar y cobrar
+      </button>
+    </div>
+
+    <div class="sidebar-section" style="flex:1; padding-bottom:0;">
+      <div class="section-title">Tarifas (COP/hora)</div>
+      <div style="display:grid; gap:8px;">
+        <div>
+          <label class="field-label">🚗 Carro</label>
+          <input type="number" id="t-carro" value="3000" min="0" step="500">
+        </div>
+        <div>
+          <label class="field-label">🏍️ Moto</label>
+          <input type="number" id="t-moto" value="1500" min="0" step="500">
+        </div>
+        <div>
+          <label class="field-label">🚲 Bicicleta</label>
+          <input type="number" id="t-bici" value="500" min="0" step="100">
+        </div>
+        <div>
+          <label class="field-label">🚛 Camión</label>
+          <input type="number" id="t-camion" value="5000" min="0" step="500">
+        </div>
+      </div>
+      <p style="font-size:11px; color:var(--text3); margin-top:8px; padding-bottom:16px;">Se cobra la hora completa o fracción</p>
+    </div>
+    </div><!-- end sidebar-collapsible -->
+  </aside>
+
+  <!-- CONTENT -->
+  <div class="content-area">
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showTab('activos', this)">Vehículos activos</button>
+      <button class="nav-tab" onclick="showTab('historial', this)">Historial del día</button>
+    </div>
+
+    <!-- TAB ACTIVOS -->
+    <div class="tab-content active" id="tab-activos">
+      <div class="table-wrapper">
+        <div class="table-header">
+          <h3>Vehículos en el parqueadero</h3>
+          <span class="count-badge" id="badge-activos">0 vehículos</span>
+        </div>
+        <div id="content-activos">
+          <div class="empty-state">
+            <div class="big-icon">🅿️</div>
+            <p>No hay vehículos registrados.<br>Ingresa una placa para comenzar.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB HISTORIAL -->
+    <div class="tab-content" id="tab-historial">
+      <div class="table-wrapper">
+        <div class="table-header">
+          <h3>Historial de salidas</h3>
+          <span class="count-badge" id="badge-historial">0 registros</span>
+        </div>
+        <div id="content-historial">
+          <div class="empty-state">
+            <div class="big-icon">📋</div>
+            <p>Sin registros de salida aún.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COBRO -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>🧾 Factura de salida</h2>
+      <button class="modal-close" onclick="cerrarModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="receipt">
+        <div class="receipt-placa" id="m-placa">ABC-123</div>
+        <div class="receipt-row"><span>Tipo</span><span class="val" id="m-tipo">—</span></div>
+        <div class="receipt-row"><span>Entrada</span><span class="val" id="m-entrada">—</span></div>
+        <div class="receipt-row"><span>Salida</span><span class="val" id="m-salida">—</span></div>
+        <div class="receipt-row"><span>Tiempo</span><span class="val" id="m-tiempo">—</span></div>
+        <div class="receipt-row"><span>Tarifa por hora</span><span class="val" id="m-tarifa">—</span></div>
+        <div class="receipt-row"><span>Horas cobradas</span><span class="val" id="m-horas">—</span></div>
+        <div class="receipt-total">
+          <span>TOTAL</span>
+          <span class="total-val" id="m-total">—</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn btn-accent" onclick="confirmarSalida()">✓ Confirmar y cobrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="success-toast" id="toast"></div>
+
+<script>
+let vehiculos = [];
+let historial = [];
+let recaudo = 0;
+let vehiculoActual = null;
+let tipoSeleccionado = 'carro';
+
+const iconos = { carro: '🚗', moto: '🏍️', bici: '🚲', camion: '🚛' };
+
+function selectTipo(btn) {
+  document.querySelectorAll('.tipo-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  tipoSeleccionado = btn.dataset.tipo;
+}
+
+function tarifa(tipo) {
+  const map = { carro: 't-carro', moto: 't-moto', bici: 't-bici', camion: 't-camion' };
+  return parseInt(document.getElementById(map[tipo])?.value) || 3000;
+}
+
+function calcular(v) {
+  const diff = Date.now() - v.entrada;
+  const horas = Math.ceil(diff / 3600000) || 1;
+  return { horas, cobro: horas * tarifa(v.tipo) };
+}
+
+function fmtHora(ts) {
+  return new Date(ts).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+function fmtFechaHora(ts) {
+  return new Date(ts).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+function fmtTiempo(ms) {
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+function fmtCop(n) { return '$' + n.toLocaleString('es-CO'); }
+
+function registrarEntrada() {
+  const raw = document.getElementById('placa-input').value.trim();
+  const placa = raw.replace(/[^A-Z0-9]/g, '');
+  if (placa.length < 5) { toast('⚠️ Placa inválida (mínimo 5 caracteres)', '#f87171'); return; }
+  if (vehiculos.find(v => v.placa === placa)) { toast('⚠️ Vehículo ya registrado', '#f87171'); return; }
+  vehiculos.push({ placa, tipo: tipoSeleccionado, entrada: Date.now() });
+  document.getElementById('placa-input').value = '';
+  renderActivos();
+  updateStats();
+  toast(`${iconos[tipoSeleccionado]} ${placa} registrado`);
+}
+
+function buscarParaSalida() {
+  const raw = document.getElementById('placa-salida').value.trim();
+  const placa = raw.replace(/[^A-Z0-9]/g, '').toUpperCase();
+  const v = vehiculos.find(x => x.placa === placa);
+  if (!v) { toast('❌ Placa no encontrada', '#f87171'); return; }
+  abrirModal(v);
+}
+
+function abrirModalDesde(placa) {
+  const v = vehiculos.find(x => x.placa === placa);
+  if (v) abrirModal(v);
+}
+
+function abrirModal(v) {
+  vehiculoActual = v;
+  const { horas, cobro } = calcular(v);
+  const ahora = Date.now();
+  document.getElementById('m-placa').textContent = v.placa;
+  document.getElementById('m-tipo').textContent = iconos[v.tipo] + ' ' + v.tipo.charAt(0).toUpperCase() + v.tipo.slice(1);
+  document.getElementById('m-entrada').textContent = fmtFechaHora(v.entrada);
+  document.getElementById('m-salida').textContent = fmtFechaHora(ahora);
+  document.getElementById('m-tiempo').textContent = fmtTiempo(ahora - v.entrada);
+  document.getElementById('m-tarifa').textContent = fmtCop(tarifa(v.tipo));
+  document.getElementById('m-horas').textContent = horas + ' hora' + (horas > 1 ? 's' : '');
+  document.getElementById('m-total').textContent = fmtCop(cobro);
+  document.getElementById('modal').classList.add('open');
+}
+
+function cerrarModal() {
+  document.getElementById('modal').classList.remove('open');
+  vehiculoActual = null;
+}
+
+function confirmarSalida() {
+  if (!vehiculoActual) return;
+  const v = vehiculoActual;
+  const ahora = Date.now();
+  const { horas, cobro } = calcular(v);
+  historial.unshift({ ...v, salida: ahora, horas, cobro });
+  recaudo += cobro;
+  vehiculos = vehiculos.filter(x => x.placa !== v.placa);
+  cerrarModal();
+  document.getElementById('placa-salida').value = '';
+  renderActivos();
+  renderHistorial();
+  updateStats();
+  toast(`✓ ${v.placa} — cobrado ${fmtCop(cobro)}`);
+}
+
+function renderActivos() {
+  const el = document.getElementById('content-activos');
+  document.getElementById('badge-activos').textContent = vehiculos.length + ' vehículo' + (vehiculos.length !== 1 ? 's' : '');
+  if (!vehiculos.length) {
+    el.innerHTML = `<div class="empty-state"><div class="big-icon">🅿️</div><p>No hay vehículos registrados.</p></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="table-scroll"><table class="vehicles-table">
+    <thead><tr>
+      <th>Placa</th><th>Tipo</th><th>Entrada</th><th>Tiempo</th><th>Cobro estimado</th><th>Acción</th>
+    </tr></thead>
+    <tbody>${vehiculos.map(v => {
+      const { horas, cobro } = calcular(v);
+      return `<tr class="anim">
+        <td><span class="placa-badge">${v.placa}</span></td>
+        <td><span class="tipo-pill ${v.tipo}">${iconos[v.tipo]} ${v.tipo}</span></td>
+        <td style="color:var(--text2); font-size:13px;">${fmtFechaHora(v.entrada)}</td>
+        <td><span class="timer-text">${fmtTiempo(Date.now()-v.entrada)}</span></td>
+        <td><span class="cobro-preview">${fmtCop(cobro)}</span></td>
+        <td><button class="btn btn-red" style="width:auto; padding:6px 14px; font-size:12px;" onclick="abrirModalDesde('${v.placa}')">💰 Cobrar</button></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+function renderHistorial() {
+  const el = document.getElementById('content-historial');
+  document.getElementById('badge-historial').textContent = historial.length + ' registro' + (historial.length !== 1 ? 's' : '');
+  if (!historial.length) {
+    el.innerHTML = `<div class="empty-state"><div class="big-icon">📋</div><p>Sin registros de salida aún.</p></div>`;
+    return;
+  }
+  el.innerHTML = historial.map(v => `
+    <div class="hist-row">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <span class="placa-badge">${v.placa}</span>
+        <span class="tipo-pill ${v.tipo}">${iconos[v.tipo]} ${v.tipo}</span>
+        <span style="font-size:12px; color:var(--text3);">${fmtFechaHora(v.entrada)} → ${fmtHora(v.salida)}</span>
+      </div>
+      <div style="text-align:right;">
+        <p style="font-family:'Space Mono',monospace; font-size:15px; font-weight:700; color:var(--green); margin:0;">${fmtCop(v.cobro)}</p>
+        <p style="font-size:11px; color:var(--text3); margin:0;">${v.horas}h cobrada${v.horas>1?'s':''}</p>
+      </div>
+    </div>`).join('');
+}
+
+function updateStats() {
+  document.getElementById('stat-dentro').textContent = vehiculos.length;
+  document.getElementById('stat-recaudo').textContent = fmtCop(recaudo);
+  document.getElementById('stat-total').textContent = historial.length;
+}
+
+function showTab(t, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (t === 'historial') renderHistorial();
+}
+
+function toast(msg, color) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = color ? 'rgba(248,113,113,0.12)' : 'var(--green-dim)';
+  el.style.color = color || 'var(--green)';
+  el.style.display = 'block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => el.style.display = 'none', 2500);
+}
+
+function toggleSidebar() {
+  const toggle = document.getElementById('sidebar-toggle');
+  const content = document.getElementById('sidebar-collapsible');
+  toggle.classList.toggle('open');
+  content.classList.toggle('open');
+}
+
+// Reloj y timers
+setInterval(() => {
+  const now = new Date();
+  document.getElementById('reloj').textContent = now.toLocaleTimeString('es-CO');
+  document.getElementById('stat-fecha').textContent = now.toLocaleDateString('es-CO', { weekday: 'short', day: '2-digit', month: 'short' });
+  if (document.getElementById('tab-activos').classList.contains('active') && vehiculos.length) renderActivos();
+}, 1000);
+
+// Init
+document.getElementById('stat-fecha').textContent = new Date().toLocaleDateString('es-CO', { weekday: 'short', day: '2-digit', month: 'short' });
+</script>
+</body>
+</html>
